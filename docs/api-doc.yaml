@@ -1,0 +1,993 @@
+openapi: 3.0.3
+info:
+  title: EduAfrica Stellar-Server-Demo API Documentation
+  description: >
+    API documentation for Eduafrica Stellar-Server-Demo.  
+    Authentications are handled with cookies set from the server.
+  version: 1.0.0
+  contact:
+    email: successakinyemi365@gmail.com
+  license:
+    name: Apache 2.0
+    url: http://apache.org/
+
+servers:
+  - url: https://spark-borders-server.onrender.com/api/v1
+    description: sandbox url
+  - url: http://localhost:5000/api/v1
+    description: local dev
+
+components:
+  securitySchemes:
+    Eduafricaauthtoken:
+      type: apiKey
+      in: cookie
+      name: eduafricaauthtoken
+    Eduafricaauthid:
+      type: apiKey
+      in: cookie
+      name: eduafricaauthid
+
+security:
+  - Eduafricaauthtoken: []
+  - Eduafricaauthid: []
+
+tags:
+  - name: Upload
+    description: Upload media file Routes
+  - name: Student
+    description: Student Routes
+  - name: Instructor
+    description: Instructor Routes
+  - name: Stellar
+    description: Stellar Routes
+  - name: Course
+    description: Course Routes
+
+
+paths:
+#UPLOAD
+  /upload/initiateUpload:
+    post:
+      tags:
+        - Upload
+      summary: Initiate multipart file upload
+      description: Starts a multipart upload and returns an `uploadId` that will be used for subsequent chunk uploads.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fileName
+              properties:
+                fileName:
+                  type: string
+                  description: The name of the file to be uploaded.
+      responses:
+        '200':
+          description: Upload initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploadId:
+                    type: string
+                    description: The ID of the initiated upload.
+        '400':
+          description: Bad request (missing or invalid parameters).
+        '500':
+          description: Server error
+
+  /upload/uploadFile:
+    post:
+      tags:
+        - Upload
+      summary: Upload a file chunk
+      description: Uploads a single chunk of a file to S3 as part of a multipart upload.
+      parameters:
+        - in: query
+          name: uploadId
+          required: true
+          schema:
+            type: string
+          description: The `uploadId` obtained from the initiate upload step.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - fileName
+                - index
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file chunk to upload.
+                fileName:
+                  type: string
+                  description: Name of the file being uploaded.
+                index:
+                  type: integer
+                  description: The chunk index (0-based).
+      responses:
+        '200':
+          description: Chunk uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          description: Bad request (missing or invalid parameters).
+        '500':
+          description: Server error
+
+  /upload/completeUpload:
+    post:
+      tags:
+        - Upload
+      summary: Complete multipart upload
+      description: Finalizes the multipart upload and assembles all uploaded chunks into the final file.
+      parameters:
+        - in: query
+          name: fileName
+          required: true
+          schema:
+            type: string
+          description: The name of the file being uploaded.
+        - in: query
+          name: uploadId
+          required: true
+          schema:
+            type: string
+          description: The `uploadId` from the initiate upload step.
+      responses:
+        '200':
+          description: Upload completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: string
+                    description: The URL of the uploaded file.
+        '400':
+          description: Bad request (missing or invalid parameters).
+        '500':
+          description: Server error
+
+#STUDENT
+  /student/register:
+    post:
+      tags:
+        - Student
+      summary: Register new student
+      description: >
+        Endpoint to register new student.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+  /student/login:
+    post:
+      tags:
+        - Student
+      summary: Login student
+      description: Endpoint to login student
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+  /student/forgotPassword:
+    post:
+      tags:
+        - Student
+      summary: Forgot password
+      description: Endpoint to request password reset link using email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+  /student/resetPassword:
+    post:
+      tags:
+        - Student
+      summary: Reset password
+      description: Endpoint to reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+  /student/signout:
+    post:
+      tags:
+        - Student
+      summary: Sign out student
+      description: Endpoint to sign out student
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+  /student/verifyToken:
+    get:
+      tags:
+        - Student
+      summary: Verify if student auth is still valid
+      description: Endpoint to is student auth is still valid
+      responses:
+        200:
+          description: Success - true
+        400:
+          description: error - false
+        500:
+          description: Server error
+
+#INSTRUCTOR
+  /instructor/register:
+    post:
+      tags:
+        - Instructor
+      summary: Register new instructor
+      description: >
+        Endpoint to register new instructor.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+  /instructor/login:
+    post:
+      tags:
+        - Instructor
+      summary: Login instructor
+      description: Endpoint to login instructor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+  /instructor/forgotPassword:
+    post:
+      tags:
+        - Instructor
+      summary: Forgot password
+      description: Endpoint to request password reset link using email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+  /instructor/resetPassword:
+    post:
+      tags:
+        - Instructor
+      summary: Reset password
+      description: Endpoint to reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+  /instructor/signout:
+    post:
+      tags:
+        - Instructor
+      summary: Sign out instructor
+      description: Endpoint to sign out instructor
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+  /instructor/verifyToken:
+    get:
+      tags:
+        - Instructor
+      summary: Verify if instructor auth is still valid
+      description: Endpoint to is instructor auth is still valid
+      responses:
+        200:
+          description: Success - true
+        400:
+          description: error - false
+        500:
+          description: Server error
+
+#STELLAR
+  /stellar/fund:
+    post:
+      tags:
+        - Stellar
+      summary: Fund wallet on stellar
+      description: Endpoint to fund wallet on stellar
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+  /stellar/balance:
+    get:
+      tags:
+        - Stellar
+      summary: Get XLM balance
+      description: Endpoint to get xlm balance
+      responses:
+        200:
+          description: Success - true
+        400:
+          description: error - false
+        500:
+          description: Server error
+
+  /stellar/paymentHistroy:
+    get:
+      tags:
+        - Stellar
+      summary: Get XLM payment history
+      description: Endpoint to get XLM payment history of a user. Supports pagination with `limit` and `cursor`.
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 200
+          description: Number of records to return per page.
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+          description: A paging token from the last record of the previous page. Used to fetch the next set of results. (paging_token)
+      responses:
+        200:
+          description: Success - true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  records:
+                    type: array
+                    description: List of payment operations
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        paging_token:
+                          type: string
+                        type:
+                          type: string
+                        amount:
+                          type: string
+                  next_cursor:
+                    type: string
+                    description: Cursor value to use for the next request.
+        400:
+          description: Error - false
+        500:
+          description: Server error
+
+#COURSE
+  /course/:
+    post:
+      tags:
+        - Course
+      summary: Create new course
+      description: Endpoint to create a new course by an instructor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+              properties:
+                title:
+                  type: string
+                  example: "Introduction to Web Development"
+                image:
+                  type: string
+                  example: "https://example.com/course-banner.png"
+                about:
+                  type: string
+                  example: "This course gives a complete overview of web technologies."
+                description:
+                  type: string
+                  example: "Learn HTML, CSS, JavaScript, and modern frameworks."
+                price:
+                  type: string
+                  example: "99.99"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+    patch:
+      tags:
+        - Course
+      summary: Update course
+      description: Endpoint to update a course by an instructor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                courseId:
+                  type: string
+                  example: "abc123"
+                title:
+                  type: string
+                  example: "Advanced Web Development"
+                description:
+                  type: string
+                  example: "Updated description"
+                price:
+                  type: string
+                  example: "149.99"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+    delete:
+      tags:
+        - Course
+      summary: Delete course
+      description: Endpoint to delete a course by an instructor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - courseId
+              properties:
+                courseId:
+                  type: string
+                  example: "abc123"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
+    get:
+      tags:
+        - Course
+      summary: Get course
+      description: Endpoint to get courses
+      requestBody:
+        required: false
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+          
+  /course/{courseId}:
+    get:
+      tags:
+        - Course
+      summary: Get course
+      description: Get course details by courseId.
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+          description: The courseId
+      responses:
+        '200':
+          description: Success - course object
+        '400':
+          description: Error - false
+        '500':
+          description: Server error
+
+  /course/instructor/course:
+    get:
+      tags:
+        - Course
+      summary: Get all courses of an instructor
+      description: Returns courses created by the authenticated instructor. Uses instructorId from auth context (req.user).
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 200
+          description: Number of records to return per page.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number (1-based).
+      responses:
+        '200':
+          description: Success - instructor courses with pagination
+        '400':
+          description: Error - false
+        '500':
+          description: Server error
+
+  /course/student/course:
+    get:
+      tags:
+        - Course
+      summary: Get all courses of a student
+      description: Returns courses the authenticated student is enrolled in. Uses student course list from auth (req.user.courses).
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 200
+          description: Number of records to return per page.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number (1-based).
+      responses:
+        '200':
+          description: Success - student courses with pagination
+        '400':
+          description: Error - false
+        '500':
+          description: Server error
+
+  components:
+    schemas:
+      CourseCreate:
+        type: object
+        required:
+          - title
+          - description
+        properties:
+          title:
+            type: string
+            example: "Introduction to Web Development"
+          image:
+            type: string
+            example: "https://example.com/course-banner.png"
+          about:
+            type: string
+            example: "This course gives a complete overview of web technologies."
+          description:
+            type: string
+            example: "Learn HTML, CSS, JavaScript, and modern frameworks."
+          price:
+            type: string
+            example: "99.99"
+
+      CourseUpdate:
+        type: object
+        required:
+          - courseId
+        properties:
+          courseId:
+            type: string
+            example: "GE123456789CHPT"
+          title:
+            type: string
+            example: "Updated Web Development Course"
+          image:
+            type: string
+            example: "https://example.com/new-banner.png"
+          about:
+            type: string
+            example: "Updated course about web development fundamentals."
+          description:
+            type: string
+            example: "Covers HTML5, CSS3, JavaScript, React, and Node.js."
+          price:
+            type: string
+            example: "149.99"
+
+      CourseDelete:
+        type: object
+        required:
+          - courseId
+        properties:
+          courseId:
+            type: string
+            description: The ID of the course to delete.
+            example: "GE123456789CHPT"
+
+      StandardResponse:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: true
+          message:
+            type: string
+            example: "Course created successfully"
+          data:
+            type: object
+            nullable: true
+
+      CourseListResponse:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: true
+          message:
+            type: string
+            example: "Courses fetched successfully"
+          data:
+            type: array
+            items:
+              $ref: '#/components/schemas/CourseDetailResponse'
+          pagination:
+            type: object
+            properties:
+              total:
+                type: integer
+                example: 100
+              page:
+                type: integer
+                example: 1
+              limit:
+                type: integer
+                example: 20
+
+      CourseDetailResponse:
+        type: object
+        properties:
+          courseId:
+            type: string
+            example: "GE123456789CHPT"
+          title:
+            type: string
+          image:
+            type: string
+          about:
+            type: string
+          description:
+            type: string
+          price:
+            type: string
+          instructorId:
+            type: string
+            example: "USR123456789"
+          createdAt:
+            type: string
+            format: date-time
+          updatedAt:
+            type: string
+            format: date-time
+    schemas:
+      CourseCreate:
+        type: object
+        required:
+          - title
+          - description
+        properties:
+          title:
+            type: string
+          image:
+            type: string
+            description: URL or S3 key for course image
+          about:
+            type: string
+          description:
+            type: string
+          price:
+            type: string
+      CourseUpdate:
+        type: object
+        required:
+          - courseId
+        properties:
+          courseId:
+            type: string
+          title:
+            type: string
+          image:
+            type: string
+          about:
+            type: string
+          description:
+            type: string
+          price:
+            type: string
+      CourseSummary:
+        type: object
+        properties:
+          courseId:
+            type: string
+          title:
+            type: string
+          image:
+            type: string
+          description:
+            type: string
+          instructorId:
+            type: string
+          price:
+            type: string
+          createdAt:
+            type: string
+            format: date-time
+      CourseDetailResponse:
+        type: object
+        properties:
+          success:
+            type: boolean
+          message:
+            type: string
+          data:
+            $ref: '#/components/schemas/CourseSummary'
+      CourseListResponse:
+        type: object
+        properties:
+          success:
+            type: boolean
+          message:
+            type: string
+          data:
+            type: object
+            properties:
+              courses:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CourseSummary'
+              total:
+                type: integer
+              page:
+                type: integer
+              limit:
+                type: integer
+              totalPages:
+                type: integer
+      StandardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
