@@ -6,6 +6,11 @@ import moment from "moment";
 import { createKeypair } from "../stellar/stellar.mjs";
 import KeyModel from "../model/Key.js";
 
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+const MAX_LOGIN_ATTEMPTS = 4
+const SUSPENSION_TIME = 6 * 60 * 60 * 1000
+
 //register
 export async function register(req, res) {
     const { name, email, password, } = req.body
