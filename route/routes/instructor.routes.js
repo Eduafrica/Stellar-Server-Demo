@@ -1,5 +1,5 @@
 import express from 'express'
-import * as controllers from '../../controllers/student.controlers.js'
+import * as controllers from '../../controllers/instructor.controllers.js'
 import { getLocation } from '../../middlewares/location.js'
 import { AuthenticateUser } from '../../middlewares/auth/user-auth.js'
 
