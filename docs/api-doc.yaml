@@ -177,8 +177,8 @@ paths:
       tags:
         - Student
       summary: Register new student
-      description: >
-        Endpoint to register new student.
+      description: Endpoint to register new student.
+      requestBody:  
         required: true
         content:
           application/json:
@@ -328,8 +328,8 @@ paths:
       tags:
         - Instructor
       summary: Register new instructor
-      description: >
-        Endpoint to register new instructor.
+      description: Endpoint to register new instructor.
+      requestBody:  
         required: true
         content:
           application/json:

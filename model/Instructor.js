@@ -30,10 +30,39 @@ const InstructorSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    lastLoginInfo: [{
+        device: {
+            type: String,
+        },
+        location: {
+            type: String
+        },
+        deviceType: {
+            type: String
+        }
+    }],
+    lastLogin: {
+        type: Date
+    },
 
     verified: {
         type: Boolean,
         default: false,
+    },
+    isBlocked: {
+        type: Boolean,
+        default: false
+    },
+    accountSuspended: {
+        type: Boolean,
+        default: false
+    },
+    noOfLoginAttempts: {
+        type: Number,
+        default: 0,
+    },
+    temporaryAccountBlockTime: {
+        type: Date,
     },
     
     /**PASSWORD REQ TOKENS */
