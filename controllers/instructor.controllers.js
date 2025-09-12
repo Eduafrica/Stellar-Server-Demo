@@ -5,6 +5,7 @@ import moment from "moment";
 import { createKeypair } from "../stellar/stellar.mjs";
 import KeyModel from "../model/Key.js";
 import IntructorModel from "../model/Instructor.js";
+import crypto from 'crypto'
 
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 

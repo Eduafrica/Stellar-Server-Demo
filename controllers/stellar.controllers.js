@@ -1,4 +1,5 @@
 import { sendResponse } from "../middlewares/utils.js"
+import CourseInfoModel from "../model/CourseInfo.js"
 import KeyModel from "../model/Key.js"
 import NotificationModel from "../model/Notification.js"
 import TransactionModel from "../model/Transaction.js"
@@ -77,7 +78,15 @@ export async function makePayment(req, res) {
     if(!courseId) return sendResponse(res, 400, false, null, 'Course Id is required')
     
     try {
+        const getCourse = await CourseInfoModel.findOne({ courseId })
+        if(!getCourse) return sendResponse(res, 404, false, null, 'Course not found')
         
+        //make payment
+        const price = getCourse?.price
+
+        //notify student
+        //notify instructor
+        //create order - save status to
     } catch (error) {
         console.log('UNABLE TO MAKE PAYMENT OF COURSE', error)
         sendResponse(res, 500, false, null, 'Unable to process payment for course')
