@@ -1,3 +1,4 @@
+import IntructorModel from "../../model/Instructor.js";
 import RefreshTokenModel from "../../model/RefreshToken.js";
 import StudentModel from "../../model/Student.js";
 import { sendResponse } from "../utils.js";
@@ -12,10 +13,11 @@ export const AuthenticateUser = async (req, res, next) => {
 
     try {
         let user;
+        let decoded
 
         if (accessToken) {
             try {
-                const decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_TOKEN_SECRET);
+                decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_TOKEN_SECRET);
                 const refreshTokenExist = await RefreshTokenModel.findOne({ accountId: decoded.id });
 
                 if (decoded.accountType === 'Student') {
@@ -23,21 +25,26 @@ export const AuthenticateUser = async (req, res, next) => {
                 }
 
                 if (decoded.accountType === 'Instructor') {
-                    user = await StudentModel.findOne({ userId: decoded.id });
+                    user = await IntructorModel.findOne({ userId: decoded.id });
                 }
 
                 if (!user) {
-                    return sendResponse(res, 404, false, 'User not found');
+                    return sendResponse(res, 404, false, null, 'User not found');
                 }
                 if (!refreshTokenExist) {
-                    return sendResponse(res, 401, false, 'Unauthenticated');
+                    return sendResponse(res, 401, false, null, 'Unauthenticated');
                 }
 
                 req.user = user;
             } catch (error) {
                 if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
                     if (accountId) {
+
                         user = await StudentModel.findOne({ userId: accountId });
+
+                        if (!user) {
+                            user = await IntructorModel.findOne({ userId: accountId });
+                        }
                         const refreshTokenExist = await RefreshTokenModel.findOne({ accountId });
 
                         if (user && refreshTokenExist) {
@@ -50,7 +57,7 @@ export const AuthenticateUser = async (req, res, next) => {
                             });
                             req.user = user;
                         } else {
-                            return sendResponse(res, 401, false, 'Unauthenticated');
+                            return sendResponse(res, 401, false, null, 'Unauthenticated');
                         }
                     } else {
                         return sendResponse(res, 401, false, 'Unauthenticated');
@@ -58,7 +65,13 @@ export const AuthenticateUser = async (req, res, next) => {
                 }
             }
         } else if (accountId) {
+            
             user = await StudentModel.findOne({ userId: accountId });
+
+            if (!user) {
+                user = await IntructorModel.findOne({ userId: accountId });
+            }
+
             const refreshTokenExist = await RefreshTokenModel.findOne({ accountId });
 
             if (user && refreshTokenExist) {
@@ -121,107 +134,4 @@ export const AllowedUserType = (allowedUserType) => {
 
     next();
   };
-};
-
-//handle subscription
-
-export const AuthenticateUserSocket = async (socket, next) => {
-    //console.log('Authenticating user socket:', socket.id);
-
-    try {
-        const cookies = socket.handshake.headers.cookie || ''; // Safeguard for missing cookies
-        if (!cookies) {
-            console.log('No cookies received');
-            return next(new Error('No cookies provided'));
-        }
-
-        const parseCookies = (cookieString) => {
-            return cookieString.split(';').reduce((acc, cookie) => {
-                const [key, value] = cookie.trim().split('=');
-                acc[key] = decodeURIComponent(value);
-                return acc;
-            }, {});
-        };
-
-        const cookieObj = parseCookies(cookies);
-        const userAccessToken = cookieObj['eduafricaauthtoken'];
-        const userAccountId = cookieObj['eduafricaauthid'];
-
-        const adminAccessToken = cookieObj['eduafricaauthtoken'];
-
-        const accessToken = userAccessToken || adminAccessToken
-        const accountId = userAccountId
-
-        //console.log('AccessToken:', accessToken, 'AccountId:', accountId);
-
-        let user = null;
-        let accountType = null;
-
-        if (accessToken) {
-            try {
-                const decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_TOKEN_SECRET);
-                console.log('Decoded token:', decoded);
-
-                if (decoded.accountType === 'user') {
-                    user = await StudentModel.findOne({ userId: decoded.id });
-                    accountType = 'user';
-                } else {
-                    return next(new Error('Invalid user account type'));
-                }
-
-                const refreshTokenExist = await RefreshTokenModel.findOne({ accountId: decoded.id });
-
-                if (user && refreshTokenExist) {
-                    socket.user = {
-                        ...user.toObject(),
-                        accountId: decoded.id,  // Add accountId to socket.user
-                        accountType
-                    };
-                    if(socket.accountType === 'admin' && socket.user.isBlocked){
-                        return next(new Error('Account is blocked'));
-                    }
-                    if(socket.accountType === 'user' && socket.user.isBlocked){
-                        return next(new Error('Account is blocked'));
-                    }
-                    if(socket.accountType === 'user' && !socket.user.verified){
-                        return next(new Error('Account is not yet verified'));
-                    }
-                    return next();
-                }
-
-                return next(new Error('Invalid access token'));
-            } catch (error) {
-                console.error('Token verification error:', error);
-                return next(new Error('Token expired or invalid'));
-            }
-        }
-
-        if (accountId) {
-            user = await StudentModel.findOne({ userId: accountId });
-            accountType = 'user';
-
-            const refreshTokenExist = await RefreshTokenModel.findOne({ accountId: accountId });
-
-            if (user && refreshTokenExist) {
-                socket.user = {
-                    ...user.toObject(),
-                    accountId,  // Add accountId to socket.user
-                    accountType
-                };
-                if(socket.accountType === 'user' && socket.user.isBlocked){
-                    return next(new Error('Account is blocked'));
-                }
-                if(socket.accountType === 'user' && !socket.user.verified){
-                    return next(new Error('Account is not yet verified'));
-                }
-                socket.emit('tokenRefreshed', { accessToken: user.getAccessToken() });
-                return next();
-            }
-        }
-
-        return next(new Error('Unauthenticated'));
-    } catch (error) {
-        console.error('Authentication error:', error);
-        return next(new Error('Server error during authentication'));
-    }
 };

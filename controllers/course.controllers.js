@@ -7,6 +7,7 @@ export async function newCourse(req, res) {
     const { title, image, about, description, price } = req.body
     if(!title) return sendResponse(res, 400, false, null, 'Provide a course title')
     if(!description) return sendResponse(res, 400, false, null, 'Provide a course description')
+    if(!price) return sendResponse(res, 400, false, null, 'Provide a course price')
 
     try {
         const newId = await generateUniqueCode(9)

@@ -70,14 +70,16 @@ export async function getPaymentHistroy(req, res) {
 }
 
 //make payment
-export async function makePayment(params) {
-    const { destinationPublic, amount } = req.body
+export async function makePayment(req, res) {
+    const { userId } = req.user
+    const { destinationPublic, courseId } = req.body
     if(!destinationPublic) return sendResponse(res, 400, false, null, 'Proivde destination address key')
-    if(!amount) return sendResponse(res, 400, false, null, 'Amount is reqy')
+    if(!courseId) return sendResponse(res, 400, false, null, 'Course Id is required')
     
     try {
         
     } catch (error) {
-        console.log('object')
+        console.log('UNABLE TO MAKE PAYMENT OF COURSE', error)
+        sendResponse(res, 500, false, null, 'Unable to process payment for course')
     }
 }

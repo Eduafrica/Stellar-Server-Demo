@@ -7,6 +7,7 @@ const router = express.Router()
 
 //POST
 router.post('/fund', AuthenticateUser, controllers.fundWallet)
+router.post('/pay', AuthenticateUser, controllers.makePayment)
 
 //GET
 router.get('/balance', AuthenticateUser, controllers.getXlmBalance)

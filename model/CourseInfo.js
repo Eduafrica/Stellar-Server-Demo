@@ -34,6 +34,9 @@ const CourseInfoSchema = new mongoose.Schema({
     student: {
         type: Array,
         default: []
+    },
+    price: {
+        type: Number
     }
 },
 { timestamps: true }
