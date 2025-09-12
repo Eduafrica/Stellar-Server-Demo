@@ -30,6 +30,20 @@ const StudentSchema = new mongoose.Schema({
         type: Array,
         default: []
     },
+    lastLoginInfo: [{
+        device: {
+            type: String,
+        },
+        location: {
+            type: String
+        },
+        deviceType: {
+            type: String
+        }
+    }],
+    lastLogin: {
+        type: Date
+    },
 
     verified: {
         type: Boolean,
