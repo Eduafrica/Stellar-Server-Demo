@@ -1,13 +1,44 @@
 import { generateUniqueCode, sendResponse } from "../middlewares/utils.js"
+import CategoriesModel from "../model/Categories.js";
 import CourseInfoModel from "../model/CourseInfo.js"
+
+//create a function to check if each item in the categories (must be an array of strings) passed already exist in CategoryModel otherwise create it. then return the category passed this time in this format [{ name: 'name of category' , _id: 'id from the category created in category model' }]
+export async function ensureCategories(categories) {
+  if (!Array.isArray(categories) || categories.length === 0) return [];
+
+  const normalized = [];
+
+  for (let rawName of categories) {
+    const cleanName = rawName.trim();
+    const slug = toSlug(cleanName);
+
+    // check if already exists by slug
+    let category = await CategoriesModel.findOne({ slug });
+
+    // create if not found
+    if (!category) {
+      category = await CategoriesModel.create({
+        name: cleanName,
+        slug,
+      });
+    }
+
+    normalized.push({ name: category.name, _id: category._id });
+  }
+
+  return normalized;
+}
 
 //new course (instructor)
 export async function newCourse(req, res) {
     const { userId } = req.user
-    const { title, image, about, description, price } = req.body
+    const { title, image, about, description, price, categories } = req.body
     if(!title) return sendResponse(res, 400, false, null, 'Provide a course title')
     if(!description) return sendResponse(res, 400, false, null, 'Provide a course description')
     if(!price) return sendResponse(res, 400, false, null, 'Provide a course price')
+    if(!Array.isArray(categories)) return sendResponse(res, 400, false, null, 'Categories must be an array')
+    if(categories.length < 1) return sendResponse(res, 400, false, null, 'Provide at least one categories')
+    const newCategories = await ensureCategories(categories);
 
     try {
         const newId = await generateUniqueCode(9)
@@ -20,7 +51,8 @@ export async function newCourse(req, res) {
             image,
             about,
             description,
-            price
+            price,
+            categories: newCategories
         })
 
         sendResponse(res, 201, true, createCourse, 'New course created successful')
@@ -33,8 +65,15 @@ export async function newCourse(req, res) {
 //update course (instructor)
 export async function editCourse(req, res) {
     const { userId } = req.user
-    const { courseId, title, image, about, description, price } = req.body
+    const { courseId, title, image, about, description, price, categories } = req.body
     if(!courseId) return sendResponse(res, 400, false, null, 'Provide a course Id')
+    let newCategories
+    if(categories) {
+        if(!Array.isArray(categories)) return sendResponse(res, 400, false, null, 'Categories must be an array')
+        if(categories.length < 1) return sendResponse(res, 400, false, null, 'Provide at least one categories')
+        newCategories = await ensureCategories(categories);
+        if(categories) getCourse.categories = newCategories
+    }
 
     try {
         const getCourse = await CourseInfoModel.findOne({ courseId })
@@ -45,6 +84,7 @@ export async function editCourse(req, res) {
         if(about) getCourse.about = about
         if(description) getCourse.description = description 
         if(price) getCourse.price = price
+        if(categories) getCourse.categories = newCategories
 
         await getCourse.save()
 
@@ -232,5 +272,134 @@ export async function getStudentCourses(req, res) {
   } catch (error) {
     console.log("UNABLE TO GET STUDENT COURSES", error);
     return sendResponse(res, 500, false, null, "Unable to get student courses");
+  }
+}
+
+//convert category name into slug
+function toSlug(name) {
+  return name.toLowerCase().replace(/\s+/g, "");
+}
+
+//get category
+export async function getCategory(req, res) {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const categories = await CategoriesModel.find()
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    const total = await CategoriesModel.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        categories,
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit),
+      },
+      message: 'Categories fetched successful'
+    });
+  } catch (error) {
+    console.error("GET CATEGORY ERROR:", error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: "Unable to fetch categories",
+    });
+  }
+}
+
+//delete category
+export async function deleteCategory(req, res) {
+  try {
+    const { id } = req.params;
+
+    const category = await CategoriesModel.findByIdAndDelete(id);
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
+    // Also remove this category from all courses
+    await CourseInfoModel.updateMany(
+      {},
+      { $pull: { categories: { _id: category._id } } }
+    );
+
+    res.status(200).json({
+      success: true,
+      data: null,
+      message: "Category deleted successfully",
+    });
+  } catch (error) {
+    console.error("DELETE CATEGORY ERROR:", error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: "Unable to delete category",
+    });
+  }
+}
+
+//update category
+export async function updateCategory(req, res) {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: "Name is required",
+      });
+    }
+
+    const slug = toSlug(name);
+
+    // Update the category
+    const category = await CategoriesModel.findByIdAndUpdate(
+      id,
+      { name, slug },
+      { new: true }
+    );
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        message: "Category not found",
+      });
+    }
+
+    // Cascade update in courses
+    await CourseInfoModel.updateMany(
+      { "categories._id": category._id },
+      {
+        $set: {
+          "categories.$.name": category.name,
+        },
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Category updated successfully",
+      data: category,
+    });
+  } catch (error) {
+    console.error("UPDATE CATEGORY ERROR:", error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: "Unable to update category",
+    });
   }
 }

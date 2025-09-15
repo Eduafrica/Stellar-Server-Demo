@@ -991,3 +991,154 @@ paths:
           type: string
         data:
           type: object
+
+  /course/category:
+    get:
+      summary: Get categories with pagination
+      description: Fetches a paginated list of categories.
+      tags:
+        - Course
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number (default is 1)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page (default is 10)
+      responses:
+        '200':
+          description: List of categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      categories:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: "64d2f0a91e7c6a2e9b123456"
+                            name:
+                              type: string
+                              example: "Programming"
+                            slug:
+                              type: string
+                              example: "programming"
+                      total:
+                        type: integer
+                        example: 42
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      pages:
+                        type: integer
+                        example: 5
+        '500':
+          description: Unable to fetch categories
+
+  /course/category/{id}:
+    put:
+      summary: Update a category
+      description: Updates a category by its ID and cascades the update to all related courses.
+      tags:
+        - Course
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Category ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "Web Development"
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Category updated successfully"
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        example: "64d2f0a91e7c6a2e9b123456"
+                      name:
+                        type: string
+                        example: "Web Development"
+                      slug:
+                        type: string
+                        example: "webdevelopment"
+        '400':
+          description: Missing required fields
+        '404':
+          description: Category not found
+        '500':
+          description: Unable to update category
+
+    delete:
+      summary: Delete a category
+      description: Deletes a category by its ID and removes it from all related courses.
+      tags:
+        - Course
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Category ID
+      responses:
+        '200':
+          description: Category deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Category deleted successfully"
+        '404':
+          description: Category not found
+        '500':
+          description: Unable to delete category

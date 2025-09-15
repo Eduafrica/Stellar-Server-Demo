@@ -13,6 +13,9 @@ router.delete('/', AuthenticateUser, AllowedUserType(['Instructor']), controller
 
 //student/public
 
+//category
+router.put('/category/:id', controllers.updateCategory)
+router.delete('/category/:id', controllers.deleteCategory)
 
 //GET
 //instructor
@@ -23,5 +26,7 @@ router.get('/', controllers.getCourses)
 router.get('/:courseId', controllers.getCourse)
 router.get('/student/course', AuthenticateUser, controllers.getStudentCourses)
 
+//category
+router.get('/category', controllers.getCategory)
 
 export default router

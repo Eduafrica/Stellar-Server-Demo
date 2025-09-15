@@ -37,6 +37,10 @@ const CourseInfoSchema = new mongoose.Schema({
     },
     price: {
         type: Number
+    },
+    categories: {
+        type: Array,
+        default: []
     }
 },
 { timestamps: true }
