@@ -2,6 +2,11 @@ import { generateUniqueCode, sendResponse } from "../middlewares/utils.js"
 import CategoriesModel from "../model/Categories.js";
 import CourseInfoModel from "../model/CourseInfo.js"
 
+//convert category name into slug
+function toSlug(name) {
+  return name.toLowerCase().replace(/\s+/g, "");
+}
+
 //create a function to check if each item in the categories (must be an array of strings) passed already exist in CategoryModel otherwise create it. then return the category passed this time in this format [{ name: 'name of category' , _id: 'id from the category created in category model' }]
 export async function ensureCategories(categories) {
   if (!Array.isArray(categories) || categories.length === 0) return [];
@@ -99,6 +104,7 @@ export async function editCourse(req, res) {
 export async function deletCourse(req, res) {
     const { userId } = req.user
     const { courseId } = req.body
+    if(!courseId) return sendResponse(res, 400, false, null, 'Course Id is required')
     
     try {
         const removeCourse = await CourseInfoModel.findOne({ courseId })
@@ -167,16 +173,17 @@ export async function getInstructorCourse(req, res) {
 
 //get all course (student)
 export async function getCourses(req, res) {
-  let { limit = 10, page = 1, search, } = req.query;
+  let { limit = 10, page = 1, search } = req.query;
   const query = { active: true };
 
   // Add search support (case-insensitive)
   if (search) {
     query.$or = [
-      { title: { $regex: search, $options: "i" } },        
-      { description: { $regex: search, $options: "i" } },  
-      { userId: { $regex: search, $options: "i" } },  
-      { courseId: { $regex: search, $options: "i" } },  
+      { title: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } },
+      { userId: { $regex: search, $options: "i" } },
+      { courseId: { $regex: search, $options: "i" } },
+      { "categories.name": { $regex: search, $options: "i" } }, // ✅ search inside category name
     ];
   }
 
@@ -219,6 +226,7 @@ export async function getCourses(req, res) {
 //get a course
 export async function getCourse(req, res) {
     const { courseId } = req.params
+    if(!courseId) return sendResponse(res, 400, false, null, 'Course Id')
 
     try {
         const course = await CourseInfoModel.findOne({ courseId }).select('-_id -__v')
@@ -275,9 +283,29 @@ export async function getStudentCourses(req, res) {
   }
 }
 
-//convert category name into slug
-function toSlug(name) {
-  return name.toLowerCase().replace(/\s+/g, "");
+//new category
+export async function newCategory(req, res) {
+    const { category } = req.body
+    const cleanName = category.trim();
+    const slug = toSlug(cleanName);
+    try {
+        // check if already exists by slug
+        let category = await CategoriesModel.findOne({ slug });
+
+        // create if not found
+        if (!category) {
+          category = await CategoriesModel.create({
+            name: cleanName,
+            slug,
+          });
+        }
+
+        sendResponse(res, 201, true, null, 'Successfull')
+    } catch (error) {
+        console.log('UNABLE TO CREATE CATEGORY',error)
+        sendResponse(res, 500, false, null, 'Unable to create ategory')
+    }
+
 }
 
 //get category
