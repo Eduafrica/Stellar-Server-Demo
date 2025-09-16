@@ -14,7 +14,7 @@ const SUSPENSION_TIME = 6 * 60 * 60 * 1000
 
 //register
 export async function register(req, res) {
-    const { name, email, password, } = req.body
+    const { name, displayName, email, password, } = req.body
     if(!name) return sendResponse(res, 400, false, null, 'Student name is required')
     if(!email) return sendResponse(res, 400, false, null, 'Student email address is required')
     if(!password) return sendResponse(res, 400, false, null, 'Student password is required')
@@ -36,6 +36,7 @@ export async function register(req, res) {
         const newStudent = await StudentModel.create({
             userId,
             name,
+            displayName,
             email,
             password,
             verified: true,

@@ -13,6 +13,9 @@ const StudentSchema = new mongoose.Schema({
         type: String,
         required: [ true, 'Student Name is required' ]
     },
+    displayName: {
+        type: String,
+    },
     email: {
         type: String,
         required: [ true, 'Student Email address is required' ],
