@@ -3,7 +3,7 @@ import CourseInfoModel from "../model/CourseInfo.js"
 import KeyModel from "../model/Key.js"
 import NotificationModel from "../model/Notification.js"
 import TransactionModel from "../model/Transaction.js"
-import { fundWithFriendbot, getBalance, getPayments } from "../stellar/stellar.mjs"
+import { fundWithFriendbot, getBalance, getPayments, sendXLM } from "../stellar/stellar.mjs"
 
 //fund wallet
 export async function fundWallet(req, res) {
@@ -81,9 +81,21 @@ export async function makePayment(req, res) {
         const getCourse = await CourseInfoModel.findOne({ courseId })
         if(!getCourse) return sendResponse(res, 404, false, null, 'Course not found')
         
+        //get student secret ket
+        const getStudentKey = await KeyModel.findOne({ userId })
+
+        //get instructor public ket
+        const getInstructorKey = await KeyModel.findOne({ userId: getCourse?.userId })
+
         //make payment
         const price = getCourse?.price
 
+        const stellarPayment = await sendXLM({ 
+            sourceSecret: getStudentKey?.stellarSecretEncrypted, 
+            destinationPublic: getInstructorKey?.stellarPublic,
+            amount: Number(price)
+        })
+        
         //notify student
         //notify instructor
         //create order - save status to
