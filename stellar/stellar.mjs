@@ -56,6 +56,83 @@ export async function sendXLM({ sourceSecret, destinationPublic, amount }) {
   return server.submitTransaction(tx);
 }
 
+// Send XLM payment with company fee bridge
+export async function sendXLMWithBridge({ 
+    sourceSecret, 
+    destinationPublic, 
+    amount, 
+    companyWallet,
+    feePercentage = 25 // Default 25% fee
+}) {
+    try {
+        if (!companyWallet) {
+            throw new Error('Company wallet address is required')
+        }
+
+        // Calculate amounts
+        const totalAmount = parseFloat(amount)
+        const companyFee = (totalAmount * feePercentage) / 100
+        const instructorAmount = totalAmount - companyFee
+
+        console.log(`Payment breakdown:`)
+        console.log(`Total: ${totalAmount} XLM`)
+        console.log(`Company fee (${feePercentage}%): ${companyFee} XLM`)
+        console.log(`Instructor receives: ${instructorAmount} XLM`)
+
+        const sourceKP = StellarSdk.Keypair.fromSecret(sourceSecret)
+        const account = await server.loadAccount(sourceKP.publicKey())
+        const fee = await server.fetchBaseFee()
+
+        // Create transaction with two payment operations
+        const transaction = new StellarSdk.TransactionBuilder(account, {
+            fee: fee * 2, // Double the fee since we have 2 operations
+            networkPassphrase: NETWORK,
+        })
+        // First payment: Company fee
+        .addOperation(
+            StellarSdk.Operation.payment({
+                destination: companyWallet,
+                asset: StellarSdk.Asset.native(),
+                amount: companyFee.toFixed(7), // Stellar supports 7 decimal places
+            })
+        )
+        // Second payment: Remaining amount to instructor
+        .addOperation(
+            StellarSdk.Operation.payment({
+                destination: destinationPublic,
+                asset: StellarSdk.Asset.native(),
+                amount: instructorAmount.toFixed(7),
+            })
+        )
+        .setTimeout(30)
+        .build()
+
+        // Sign and submit transaction
+        transaction.sign(sourceKP)
+        const result = await server.submitTransaction(transaction)
+
+        return {
+            success: true,
+            transactionHash: result.hash,
+            totalAmount,
+            companyFee,
+            instructorAmount,
+            feePercentage,
+            companyWallet,
+            destinationPublic,
+            stellarResponse: result
+        }
+
+    } catch (error) {
+        console.error('Payment bridge error:', error)
+        return {
+            success: false,
+            error: error.message || 'Payment failed',
+            details: error
+        }
+    }
+}
+
 // Get paginated payment history
 export async function getPayments(publicKey, { limit = 20, cursor } = {}) {
   let builder = server.payments().forAccount(publicKey).limit(limit);

@@ -76,16 +76,20 @@ app.use('/api/api-doc', swaggerGeneralUI, swaggerUI.setup(swaggerGeneralJSDocs, 
 
 import { sendResponse } from "./middlewares/utils.js";
 
-
 //Home get req
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
     try {
+
         return sendResponse(res, 200, true, 'Welcome to Eduafrica!!!')
     } catch (error) {
         console.log('BASE ENDPOINT ERROR', error)
         return sendResponse(res, 500, false, 'Home get error')
     }
 })
+
+//const adm = await fundWithFriendbot('GCYP5EIXZZBVX572T4EUI4VLKLBBFFSJRJGXTS46LX3J23JUZMIPZV2G')
+//const ins = await fundWithFriendbot('GB7F65MOTQI5N42BCQD7OCRKH5T4XHZ5GSSW4IGDGKXLYWQ6N3X67O32')
+//console.log('RESPOS', adm, ins)
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

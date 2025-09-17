@@ -2,7 +2,7 @@ import { sendAccountActivationEmail, sendNewLoginEmail, sendWelcomeEmail } from 
 import { generateUniqueCode, maskEmail, sendResponse, validatePassword } from "../middlewares/utils.js"
 import RefreshTokenModel from "../model/RefreshToken.js"
 import moment from "moment";
-import { createKeypair } from "../stellar/stellar.mjs";
+import { createKeypair, fundWithFriendbot } from "../stellar/stellar.mjs";
 import KeyModel from "../model/Key.js";
 import IntructorModel from "../model/Instructor.js";
 import crypto from 'crypto'
@@ -48,6 +48,10 @@ export async function register(req, res) {
             stellarPublic: stellerKey?.publicKey,
             stellarSecretEncrypted: stellerKey?.secret
         })
+
+        //fund user account
+        await fundWithFriendbot(stellerKey?.publicKey)
+
 
         //send welcome email
         sendWelcomeEmail({

@@ -477,6 +477,33 @@ paths:
           description: Server error
 
 #STELLAR
+  /stellar/pay:
+    post:
+      tags:
+        - Stellar
+      summary: Make payment for course via stellar
+      description: Endpoint make payment via stellar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - courseId
+              properties:
+                courseId:
+                  type: string
+                  format: string
+                  example: EDU832162CO
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+
   /stellar/fund:
     post:
       tags:
