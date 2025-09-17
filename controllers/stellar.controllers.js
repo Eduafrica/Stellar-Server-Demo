@@ -3,6 +3,7 @@ import CourseInfoModel from "../model/CourseInfo.js"
 import KeyModel from "../model/Key.js"
 import NotificationModel from "../model/Notification.js"
 import OrderModel from "../model/Order.js"
+import StudentModel from "../model/Student.js"
 import TransactionModel from "../model/Transaction.js"
 import { fundWithFriendbot, getBalance, getPayments, sendXLM, sendXLMWithBridge } from "../stellar/stellar.mjs"
 
@@ -116,6 +117,8 @@ export async function makePayment(req, res) {
     if(!courseId) return sendResponse(res, 400, false, null, 'Course Id is required')
     
     try {
+        const getUser = await StudentModel.findOne({ userId })
+
         const getCourse = await CourseInfoModel.findOne({ courseId })
         if(!getCourse) return sendResponse(res, 404, false, null, 'Course not found')
         
@@ -175,6 +178,9 @@ export async function makePayment(req, res) {
                 notification: `Successful purchase of your course. Course: ${getCourse?.title}. Price ${stellarPayment?.instructorAmount}`
             })
 
+            getUser.courses.push(courseId)
+            await getUser.save()
+            
             return sendResponse(res, 200, true, {
                 //...stellarPayment,
                 order: orderData
