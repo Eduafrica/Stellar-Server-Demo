@@ -15,6 +15,8 @@ router.use("/instructor", InstructorRoutes);
 router.use("/stellar", StellarRoutes);
 router.use("/course", CourseRoutes);
 router.use("/user", UserRoutes);
+router.use("/category", CategoryRoutes);
+
 
 
 export default router;
