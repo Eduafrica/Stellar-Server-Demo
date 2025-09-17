@@ -1,6 +1,7 @@
 import { generateUniqueCode, sendResponse } from "../middlewares/utils.js"
 import CategoriesModel from "../model/Categories.js";
 import CourseInfoModel from "../model/CourseInfo.js"
+import NotificationModel from "../model/Notification.js";
 
 //convert category name into slug
 function toSlug(name) {
@@ -36,7 +37,7 @@ export async function ensureCategories(categories) {
 
 //new course (instructor)
 export async function newCourse(req, res) {
-    const { userId } = req.user
+    const { userId, name } = req.user
     const { title, image, about, description, price, categories } = req.body
     if(!title) return sendResponse(res, 400, false, null, 'Provide a course title')
     if(!description) return sendResponse(res, 400, false, null, 'Provide a course description')
@@ -58,6 +59,11 @@ export async function newCourse(req, res) {
             description,
             price,
             categories: newCategories
+        })
+
+        await NotificationModel.create({
+            userId,
+            notification: `YOu have created a new course. Your course is active`
         })
 
         sendResponse(res, 201, true, createCourse, 'New course created successful')

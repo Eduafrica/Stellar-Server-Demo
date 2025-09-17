@@ -43,7 +43,10 @@ tags:
     description: Stellar Routes
   - name: Course
     description: Course Routes
-
+  - name: Category
+    description: Course Routes
+  - name: user
+    description: User Routes
 
 paths:
 #UPLOAD
@@ -992,28 +995,29 @@ paths:
         data:
           type: object
 
-  /course/category:
-    get:
-      summary: Get categories with pagination
-      description: Fetches a paginated list of categories.
+#CATEGORY
+  /category/:
+    post:
       tags:
-        - Course
-      parameters:
-        - in: query
-          name: page
-          schema:
-            type: integer
-            default: 1
-          description: Page number (default is 1)
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            default: 10
-          description: Number of items per page (default is 10)
+        - Category
+      summary: Create new category (NOT NEEDED)
+      description: Endpoint to create a new category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - category
+                - description
+              properties:
+                category:
+                  type: string
+                  example: "Teaching Methodologies"
       responses:
         '200':
-          description: List of categories retrieved successfully
+          description: Success
           content:
             application/json:
               schema:
@@ -1022,44 +1026,32 @@ paths:
                   success:
                     type: boolean
                     example: true
-                  data:
-                    type: object
-                    properties:
-                      categories:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            _id:
-                              type: string
-                              example: "64d2f0a91e7c6a2e9b123456"
-                            name:
-                              type: string
-                              example: "Programming"
-                            slug:
-                              type: string
-                              example: "programming"
-                      total:
-                        type: integer
-                        example: 42
-                      page:
-                        type: integer
-                        example: 1
-                      limit:
-                        type: integer
-                        example: 10
-                      pages:
-                        type: integer
-                        example: 5
+        '400':
+          description: User error
         '500':
-          description: Unable to fetch categories
+          description: Server error
 
-  /course/category/{id}:
+    get:
+      tags:
+        - Category
+      summary: Get Category
+      description: Endpoint to get category
+      requestBody:
+        required: false
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: User error
+        '500':
+          description: Server error
+      
+  /category/{id}:
     put:
       summary: Update a category
       description: Updates a category by its ID and cascades the update to all related courses.
       tags:
-        - Course
+        - Category
       parameters:
         - in: path
           name: id
@@ -1116,7 +1108,7 @@ paths:
       summary: Delete a category
       description: Deletes a category by its ID and removes it from all related courses.
       tags:
-        - Course
+        - Category
       parameters:
         - in: path
           name: id
@@ -1142,3 +1134,34 @@ paths:
           description: Category not found
         '500':
           description: Unable to delete category
+
+#USER
+  /user/notification:
+    get:
+      tags:
+        - User
+      summary: Get user Notifications histroy
+      description: Endpoint to get XLM payment history of a user. Supports pagination with `limit` and `page`.
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+          description: Number of records to return per page.
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: string
+          description: A paging token from the last record of the previous page. Used to fetch the next set of results. (paging_token)
+      responses:
+        200:
+          description: Success - true
+        400:
+          description: Error - false
+        500:
+          description: Server error
