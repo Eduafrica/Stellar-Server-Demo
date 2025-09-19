@@ -44,7 +44,11 @@ const InstructorSchema = new mongoose.Schema({
     lastLogin: {
         type: Date
     },
-
+    courses: {
+        type: Array,
+        default: []
+    },
+    
     verified: {
         type: Boolean,
         default: false,

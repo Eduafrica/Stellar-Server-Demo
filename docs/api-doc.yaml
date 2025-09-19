@@ -623,6 +623,10 @@ paths:
                 price:
                   type: string
                   example: "99.99"
+                categories:
+                  type: array
+                  items:
+                    type: string
       responses:
         '200':
           description: Success
@@ -663,6 +667,10 @@ paths:
                 price:
                   type: string
                   example: "149.99"
+                categories:
+                  type: array
+                  items:
+                    type: string
       responses:
         '200':
           description: Success

@@ -63,7 +63,7 @@ export async function newCourse(req, res) {
 
         await NotificationModel.create({
             userId,
-            notification: `YOu have created a new course. Your course is active`
+            notification: `You have created a new course. Your course is active`
         })
 
         sendResponse(res, 201, true, createCourse, 'New course created successful')
@@ -138,7 +138,18 @@ export async function deletCourse(req, res) {
 //get instructor courses (instructor)
 export async function getInstructorCourse(req, res) {
   const { userId } = req.user; // instructor ID
-  let { limit = 10, page = 1 } = req.query;
+  let { limit = 10, page = 1, search } = req.query;
+    const query = { userId }
+    // Add search support (case-insensitive)
+  if (search) {
+    query.$or = [
+      { title: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } },
+      { userId: { $regex: search, $options: "i" } },
+      { courseId: { $regex: search, $options: "i" } },
+      { "categories.name": { $regex: search, $options: "i" } }, // ✅ search inside category name
+    ];
+  }
 
   // Convert query params to numbers
   limit = parseInt(limit, 10);
@@ -152,10 +163,10 @@ export async function getInstructorCourse(req, res) {
 
   try {
     // Get total count for pagination
-    const totalCourses = await CourseInfoModel.countDocuments({ userId });
+    const totalCourses = await CourseInfoModel.countDocuments(query);
 
     // Get paginated courses
-    const getCourses = await CourseInfoModel.find({ userId })
+    const getCourses = await CourseInfoModel.find(query)
       .select('-_id -__v')
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -208,7 +219,7 @@ export async function getCourses(req, res) {
 
     // Fetch paginated results
     const getCourses = await CourseInfoModel.find(query)
-      .select("-_id -__v")
+      .select("-_id -__v -student")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -235,7 +246,7 @@ export async function getCourse(req, res) {
     if(!courseId) return sendResponse(res, 400, false, null, 'Course Id')
 
     try {
-        const course = await CourseInfoModel.findOne({ courseId }).select('-_id -__v')
+        const course = await CourseInfoModel.findOne({ courseId }).select('-_id -__v -student')
         if(!course) return sendResponse(res, 404, false, null, 'Course not found')
 
         sendResponse(res, 200, true, course, 'Course fetched successful')
@@ -247,8 +258,19 @@ export async function getCourse(req, res) {
 
 //get my course (student)
 export async function getStudentCourses(req, res) {
-  let { limit = 10, page = 1 } = req.query;
+  let { limit = 10, page = 1, search } = req.query;
   const { courses } = req.user;
+ const query = {}
+// Add search support (case-insensitive)
+  if (search) {
+    query.$or = [
+      { title: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } },
+      { userId: { $regex: search, $options: "i" } },
+      { courseId: { $regex: search, $options: "i" } },
+      { "categories.name": { $regex: search, $options: "i" } }, // ✅ search inside category name
+    ];
+  }
 
   limit = parseInt(limit, 10);
   page = parseInt(page, 10);
@@ -268,7 +290,7 @@ export async function getStudentCourses(req, res) {
 
     //paginate courses
     const studentCourses = await CourseInfoModel.find({ courseId: { $in: courses } })
-      .select("-_id -__v")
+      .select("-_id -__v -student")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

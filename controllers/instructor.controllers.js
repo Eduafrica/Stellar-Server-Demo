@@ -6,6 +6,7 @@ import { createKeypair, fundWithFriendbot } from "../stellar/stellar.mjs";
 import KeyModel from "../model/Key.js";
 import IntructorModel from "../model/Instructor.js";
 import crypto from 'crypto'
+import NotificationModel from "../model/Notification.js";
 
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -61,6 +62,15 @@ export async function register(req, res) {
         sendAccountActivationEmail({
             email,
             name
+        })
+
+        await NotificationModel.create({
+            userId,
+            notification: `Hello ${name} You new instructor account has been created`
+        })
+        await NotificationModel.create({
+            userId,
+            notification: `Hello ${name} a new wallet address has been created and added for you wallet`
         })
 
         //set auth cookie

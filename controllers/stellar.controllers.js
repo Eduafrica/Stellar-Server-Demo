@@ -1,5 +1,6 @@
 import { sendResponse } from "../middlewares/utils.js"
 import CourseInfoModel from "../model/CourseInfo.js"
+import IntructorModel from "../model/Instructor.js"
 import KeyModel from "../model/Key.js"
 import NotificationModel from "../model/Notification.js"
 import OrderModel from "../model/Order.js"
@@ -72,11 +73,8 @@ export async function getPaymentHistroy(req, res) {
     }
 }
 
-/**
- * 
-
-//make payment
-export async function makePayment(req, res) {
+//send money
+export async function sendMoney(req, res) {
     const { userId } = req.user
     const { destinationPublic, courseId } = req.body
     if(!destinationPublic) return sendResponse(res, 400, false, null, 'Proivde destination address key')
@@ -109,7 +107,6 @@ export async function makePayment(req, res) {
         sendResponse(res, 500, false, null, 'Unable to process payment for course')
     }
 }
- */
 
 export async function makePayment(req, res) {
     const { userId } = req.user
@@ -117,7 +114,11 @@ export async function makePayment(req, res) {
     if(!courseId) return sendResponse(res, 400, false, null, 'Course Id is required')
     
     try {
-        const getUser = await StudentModel.findOne({ userId })
+        let getUser
+        getUser = await StudentModel.findOne({ userId })
+        if(!getUser){
+            getUser = await IntructorModel.findOne({ userId })
+        }
 
         const getCourse = await CourseInfoModel.findOne({ courseId })
         if(!getCourse) return sendResponse(res, 404, false, null, 'Course not found')
@@ -180,10 +181,16 @@ export async function makePayment(req, res) {
 
             getUser.courses.push(courseId)
             await getUser.save()
+
+            //update course
+            getCourse.student.push(userId)
+            getCourse.totalStudent += 1
+            await getCourse.save()
             
             return sendResponse(res, 200, true, {
                 //...stellarPayment,
-                order: orderData
+                order: orderData,
+                user: getUser,
             }, 'Payment successful')
         } else {
             return sendResponse(res, 400, false, null, stellarPayment.error || 'Payment failed')
