@@ -140,4 +140,35 @@ export async function getPayments(publicKey, { limit = 20, cursor } = {}) {
   return builder.order("desc").call();
 }
 
+export async function getPaymentsWithFees(publicKey, { limit = 20, cursor } = {}) {
+  let builder = server.payments().forAccount(publicKey).limit(limit);
+  if (cursor) builder = builder.cursor(cursor);
+
+  const payments = await builder.order("desc").call();
+
+  const results = await Promise.all(
+    payments.records.map(async (payment) => {
+      try {
+        const tx = await server.transactions().transaction(payment.transaction_hash).call();
+
+        // Convert stroops → XLM
+        const feeInXLM = (parseFloat(tx.fee_charged) / 1e7).toFixed(6);
+        const maxFeeInXLM = (parseFloat(tx.max_fee) / 1e7).toFixed(6);
+
+        return {
+          fee_charged: feeInXLM,
+          fee_account: tx.fee_account,
+          max_fee: maxFeeInXLM,
+          ...payment, // now Horizon values won't overwrite yours
+        };
+      } catch (err) {
+        return { fee_charged: null, ...payment };
+      }
+    })
+  );
+
+  return results;
+}
+
+
 export { server, NETWORK };

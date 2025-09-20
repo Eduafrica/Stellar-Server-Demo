@@ -6,7 +6,7 @@ import NotificationModel from "../model/Notification.js"
 import OrderModel from "../model/Order.js"
 import StudentModel from "../model/Student.js"
 import TransactionModel from "../model/Transaction.js"
-import { fundWithFriendbot, getBalance, getPayments, sendXLM, sendXLMWithBridge } from "../stellar/stellar.mjs"
+import { fundWithFriendbot, getBalance, getPayments, getPaymentsWithFees, sendXLM, sendXLMWithBridge } from "../stellar/stellar.mjs"
 
 //fund wallet
 export async function fundWallet(req, res) {
@@ -64,7 +64,9 @@ export async function getPaymentHistroy(req, res) {
     try {
         const getAccount = await KeyModel.findOne({ userId })
         if(!getAccount) return sendResponse(res, 404, false, null, 'Account not found')
-        const getWalletBalance = await getPayments(getAccount?.stellarPublic, { limit, cursor })
+        //const getWalletBalance = await getPayments(getAccount?.stellarPublic, { limit, cursor })
+
+        const getWalletBalance = await getPaymentsWithFees(getAccount?.stellarPublic, { limit, cursor })
 
         sendResponse(res, 200, true, getWalletBalance, 'Xlm payment histroy')
     } catch (error) {
